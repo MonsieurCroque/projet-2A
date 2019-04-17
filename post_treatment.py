@@ -6,13 +6,13 @@ from math import sqrt, log, sin, pi
 
 # Two ways to generate input
 
-#Generates function
+# Generates function
 def generate(n):
     datax = numpy.array([sin(i*2*pi/25) + random() -0.5 for i in range(n)])
     datay = numpy.array([(sqrt(i) + random() -0.5) for i in range(int(n/2))] + [(sqrt(int(n/2))+log(i+1)**2+ random() -0.5) for i in range(n-int(n/2))])
     return datax, datay
 
-#Generates vect
+# Generates vect
 """datax=numpy.array([1,2,3,4,5,6,7,8]) # data coordinates
 datay=numpy.array([2.95,6.03,11.2,17.7,26.8, 17.7, 11.2, 6.03])
 constraintmaxx=numpy.array([0]) # list of maximum constraints
