@@ -11,6 +11,10 @@
 #include "esp_err.h"
 #include "sdkconfig.h"
 
+#include "BluetoothSerial.h"
+ 
+BluetoothSerial SerialBT;
+
 #define ESP_ERR_FLASH_BASE       0x10010
 #define ESP_ERR_FLASH_OP_FAIL    (ESP_ERR_FLASH_BASE + 1)
 #define ESP_ERR_FLASH_OP_TIMEOUT (ESP_ERR_FLASH_BASE + 2)
@@ -63,11 +67,17 @@ template <class T> int Flash_readAnything(int ee, T& value)
    int i;
    spi_flash_read(ee, *p, 2);
 }
+ 
+void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param){
+  if(event == ESP_SPP_SRV_OPEN_EVT){
+    Serial.println("Client Connected");
+  }
+}
 
 void loop() {
 
     // Sleep 
-    //esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
     
     // Store and print new point
     long writeValue;
@@ -88,18 +98,26 @@ void loop() {
 
     // if button pressed then print all memory
     if (button0.getState() == TACTILE_STATE_LONG_PRESS) {
+
+         SerialBT.register_callback(callback);
+   
+         if(!SerialBT.begin("ESP32")){
+           Serial.println("An error occurred initializing Bluetooth");
+         }else{
+           Serial.println("Bluetooth initialized");
+         }
          int i;
          i = 0;       
          while (i < memory_const){
              long readValue;
              Flash_readAnything(i, readValue);
-             Serial.print("LAT=");  Serial.print(readValue, 6);
+             SerialBT.print("LAT=");  SerialBT.print(readValue, 6);
              i = i + 2;
              Flash_readAnything(i, readValue);
-             Serial.print("LONG=");  Serial.print(readValue, 6);
+             SerialBT.print("LONG=");  SerialBT.print(readValue, 6);
              i = i + 2;
              Flash_readAnything(i, readValue);
-             Serial.print("ALT=");  Serial.print(readValue, 6);
+             SerialBT.print("ALT=");  SerialBT.print(readValue, 6);
              i = i + 2;
          }
     }
