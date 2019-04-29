@@ -4,30 +4,37 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 from random import random
 from math import sqrt, log, sin, pi, floor, ceil
-from bluetooth import *
-
+import bluetooth
 # Get data from ESP32
-"""
-server_socket=BluetoothSocket( RFCOMM )
-server_socket.bind(("", 3 ))
-server_socket.listen(1)
-client_socket, address = server_socket.accept()
-dataAcc = ""
+
+i= 0
+
 while True:
-    newData = client_socket.recv(1024)
-    if len(newData) == 0:
-        break
-    dataAcc += newData
-
-print("received [%s]" % dataAcc)
-
-client_socket.close()
-server_socket.close()
+    hostMACAddress = '30:ae:a4:8f:f0:de' # The MAC address of a Bluetooth adapter on the server. The server might have multiple Bluetooth adapters.
+    
+    serverMACAddress = '30:ae:a4:8f:f0:de'
+    port = 7
+    s = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+    s.connect((hostMACAddress, port))
+    i = 0
+    while i < 1000:
+        newData = raw_input()
+        i += 0.00001
+        if newData != None:
+            break
+        dataAcc += newData
+        print(newData)
+    
+    print("received [%s]" % dataAcc)
+    
+    client_socket.close()
+    server_socket.close()
+    break
 
 # Transform data into array
 
 dataLong = numpy.array([dataAcc[2*i] for i in range(floor(len(dataAcc) / 2))])
-dataLat = numpy.array([dataAcc[2*i + 1] for i in range(ceil(len(dataAcc) / 2)-1)])"""
+dataLat = numpy.array([dataAcc[2*i + 1] for i in range(ceil(len(dataAcc) / 2)-1)])
 
 # Generate data for testing (Paris)
 

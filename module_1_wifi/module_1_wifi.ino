@@ -3,6 +3,15 @@
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include "EEPROM.h"
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiAP.h>
+
+// Set these to your desired credentials.
+const char *ssid = "ESP32";
+const char *password = "yourPassword";
+
+WiFiServer server(80); // set wifi server
 
 #define EEPROM_SIZE 550 // number of bytes you want to access (up to 4Mb cf doc)
 
@@ -36,6 +45,12 @@ void setup() {
   //set button
   pinMode(buttonPin, INPUT);
 
+  //set wifi server
+  WiFi.softAP(ssid, password);
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+  server.begin();
 }
 
 
@@ -61,15 +76,26 @@ void loop() {
   buttonState = digitalRead(buttonPin);
   if (buttonState == HIGH) {
 
-    int i = 0;
-    while (i < memory_addr){
-       long readValue;
-       readValue = EEPROM.read(i);
-       Serial.println(readValue);
-       i = i + 1;
-    }
-
+      WiFiClient client = server.available();   // listen for incoming clients
+      
+      while (client) {                             // if you get a client,
+          
+          while (! client.connected()) {
+            Serial.println("wait");// wait for client
+          }
+          
+          int i = 0;
+          while (i < memory_addr){
+             long readValue;
+             readValue = EEPROM.read(i);
+             //Serial.println(readValue);
+             client.write(readValue);  //send value to client
+             i = i + 1;
+          }
+          break;
+          }
   }
   Serial.println("over");
     
+  //client.stop(); // close the connection
 }
