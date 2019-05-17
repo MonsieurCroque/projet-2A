@@ -24,12 +24,10 @@ static const uint32_t GPSBaud = 9600;
 
 TinyGPSPlus gps; //creation of an GPS object
 
-SoftwareSerial ss(RXPin, TXPin); //creation of a SoftwareSerial for GPS connection
+SoftwareSerial ss(RXPin, TXPin); //creation of a SoftwareSerial for GPS connection..............
 
-long memory_addr; //current memory pointer
-
-//Save reading number on RTC memory (keep trak of Reading ID even in Deep Sleep)
-//RTC_DATA_ATTR int readingID = 0;
+float memory_addr; //current memory pointer
+float writeValue; //current gps coordinate
 
 void setup() {
 
@@ -57,17 +55,17 @@ void setup() {
 void loop() {
 
   while(ss.available() > 0){
+    gps.encode(ss.read());
     
     if (gps.location.isUpdated()){
 
-      long writeValue = gps.location.lat();
-      Serial.println(writeValue, 6);
+      //new point in memory
+      writeValue = gps.location.lat();     
       EEPROM.write(memory_addr, writeValue);
-      EEPROM.commit();
-      memory_addr = memory_addr + 2;
-      long writeValue = gps.location.lng();
-      Serial.println(writeValue, 6);
+      memory_addr = memory_addr + 1;
+      writeValue = gps.location.lng();
       EEPROM.write(memory_addr, writeValue);
+      memory_addr = memory_addr + 1;
       EEPROM.commit();
       
     }
@@ -86,16 +84,15 @@ void loop() {
           
           int i = 0;
           while (i < memory_addr){
-             long readValue;
+             float readValue;
              readValue = EEPROM.read(i);
-             //Serial.println(readValue);
+             Serial.println(readValue);
              client.write(readValue);  //send value to client
              i = i + 1;
           }
           break;
           }
+    client.stop(); // close the connection
+    Serial.println("over");
   }
-  Serial.println("over");
-    
-  //client.stop(); // close the connection
 }
