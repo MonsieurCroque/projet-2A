@@ -30,15 +30,12 @@ float memory_addr; //current memory pointer
 float longitude; //current gps longitude
 float latitude; //current gps latitude
 
-float P0[2]; // point for slope
-float P1[2]; // point for slope
-float P2[2]; // new point
-float Pm[2]; // point before changing
-float coord0[2] = {-1000,-1000};
-float coord1[2] = {-1000,-1000};;
-float coord2[2] = {-1000,-1000};;
-float coordM[2];
+float coord0[2] = {-1000,-1000};  // point for slope
+float coord1[2] = {-1000,-1000};  // point for slope
+float coord2[2] = {-1000,-1000};  // new point
+float coordM[2]; // point before changing
 
+const float espi = 10/6300000; // precision to achieve in meters
 const float pi = 3.14;
 
 // copy content array in target array with length of 2
@@ -47,18 +44,9 @@ void copy(float target[], float content[]){
   target[1] = content[1];
 }
 
-//Convert longitude and latitude to cartesian
-void convertcart (float longi, float lati, float P[]){
-    float R = 6300000; 
-    float x = R*cos(lati*pi/180)*cos(longi*pi/180);
-    float y = R*cos(lati*pi/180)*sin(longi*pi/180);
-    P[0] = x;
-    P[1] = y;
-}
-
 //Distance between point and slope in cartesian
-float distancedir(float P0[],float P1[], float P2[]){
-    return ((P1[1]-P0[1])*P2[0]-(P1[0]-P0[0])*P2[1] + P1[0]*P0[0] - P1[1]*P0[0])/sqrt(pow(P1[1]-P0[1], 2) + pow(P1[0]-P0[0],2));
+float distance(float coord0[],float coord1[], float coord2[]){
+    return ((coord1[1]-coord0[1])*coord2[0]-(coord1[0]-coord0[0])*coord2[1] + coord1[0]*coord0[0] - coord1[1]*coord0[0])/sqrt(pow(coord1[1]-coord0[1], 2) + pow(coord1[0]-coord0[0],2));
 }
 
 
@@ -101,7 +89,6 @@ void loop() {
 
         coord0[0] = longitude;
         coord0[1] = latitude;
-        convertcart(coord0[0], coord0[0], P0);
         
         //starting point in memory
         EEPROM.write(memory_addr, longitude);
@@ -115,18 +102,14 @@ void loop() {
 
         coord1[0] = longitude;
         coord1[1] = latitude;
-        convertcart(coord1[0], coord1[1], P1);
       }
 
       else{ //after initialization
 
         coord2[0] = latitude;
         coord2[1] = longitude;
-
-        //distance with slope
-        convertcart(coord2[0], coord2[1], P2);
         
-        if (distancedir(P0,P1,P2) > 10){
+        if (distance(coord0,coord1,coord2) > epsi){
 
           Serial.println("newPoint");
           Serial.println(longitude, latitude);
@@ -148,9 +131,6 @@ void loop() {
           //change slope
           copy(coord0, coordM);
           copy(coord1, coord1);
-          convertcart(coordM[0], coordM[1], Pm);
-          copy(P0, Pm);
-          copy(P1, P2);
         }
       
       else{ // if current slope good enough
