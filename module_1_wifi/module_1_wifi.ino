@@ -56,9 +56,11 @@ void loop() {
 
   while(ss.available() > 0){
     gps.encode(ss.read());
+
+    Serial.println(ss);
     
     if (gps.location.isUpdated()){
-
+      
       //new point in memory
       writeValue = gps.location.lat();     
       EEPROM.write(memory_addr, writeValue);
@@ -93,6 +95,5 @@ void loop() {
           break;
           }
     client.stop(); // close the connection
-    Serial.println("over");
   }
 }

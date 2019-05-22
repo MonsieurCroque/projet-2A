@@ -58,7 +58,7 @@ void convertcart (float longi, float lati, float P[]){
 
 //Distance between point and slope in cartesian
 float distancedir(float P0[],float P1[], float P2[]){
-    return ((P1[1]-P0[1])*P2[0]-(P1[0]-P0[0])*P2[1] + P1[0]*P0[0] - P1[1]*P0[0])/sqrt(pow(P1[1]-P0[1], 2) + pow(P1[0]-P0[0],2));
+    return ((P1[1]-P0[1])*P2[0]-(P1[0]-P0[0])*P2[1] + P1[0]*P0[1] - P1[1]*P0[0])/sqrt(pow(P1[1]-P0[1], 2) + pow(P1[0]-P0[0],2));
 }
 
 

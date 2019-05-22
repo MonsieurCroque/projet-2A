@@ -46,9 +46,8 @@ void copy(float target[], float content[]){
 
 //Distance between point and slope in cartesian
 float distance(float coord0[],float coord1[], float coord2[]){
-    return ((coord1[1]-coord0[1])*coord2[0]-(coord1[0]-coord0[0])*coord2[1] + coord1[0]*coord0[0] - coord1[1]*coord0[0])/sqrt(pow(coord1[1]-coord0[1], 2) + pow(coord1[0]-coord0[0],2));
+    return ((coord1[1]-coord0[1])*coord2[0]-(coord1[0]-coord0[0])*coord2[1] + coord1[0]*coord0[1] - coord1[1]*coord0[0])/sqrt(pow(coord1[1]-coord0[1], 2) + pow(coord1[0]-coord0[0],2));
 }
-
 
 void setup() {
 

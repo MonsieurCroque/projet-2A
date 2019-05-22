@@ -6,24 +6,26 @@ Created on Sat May 18 09:03:13 2019
 """
 from math import sqrt
 
-#--------------------Parameters-----------------------------
+#--------------------Parameters-----------------------
 
 n = 100 #nb of table values for longitude and latitude
 freq = 1 #in Hz
-eps = 10 #required precision in meters
+eps = 0.0001 #required precision for output float
 
-#--------------------Program------------------------
+#--------------------To cap float precision-----------
+
+def rounder(value, precision):
+    return str(round(value/precision)*precision)
+
+#--------------------Program-------------------------
 
 varContentArduino = "T = {"
 R = 6637813.7
 
 for long in range (n):
     for lat in range (n):
-        if sqrt(lat**2+long**2) > 10000000*eps/R:
-            varContentArduino += "0, "
-        else:
-            varContentArduino += "1, "
+        varContentArduino += rounder(1/sqrt((R*long/10000000)**2 + (R*(lat+1)/10000000)**2), eps)  + ", "
 
-table = varContentArduino[0:-2] + "}"
+table = varContentArduino[0:-2] + "};"
 
 print(table)
