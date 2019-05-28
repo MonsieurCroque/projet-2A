@@ -44,11 +44,11 @@ void setup() {
   pinMode(buttonPin, INPUT);
 
   //set wifi server
-  WiFi.softAP(ssid, password);
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
-  server.begin();
+  //WiFi.softAP(ssid, password);
+  //IPAddress myIP = WiFi.softAPIP();
+  //Serial.print("AP IP address: ");
+  //Serial.println(myIP);
+  //server.begin();
 }
 
 
@@ -57,10 +57,10 @@ void loop() {
   while(ss.available() > 0){
     gps.encode(ss.read());
 
-    Serial.println(ss);
-    
     if (gps.location.isUpdated()){
-      
+
+      Serial.println(gps.location.lat(), 6);
+      Serial.println(gps.location.lng(), 6);
       //new point in memory
       writeValue = gps.location.lat();     
       EEPROM.write(memory_addr, writeValue);
@@ -88,12 +88,13 @@ void loop() {
           while (i < memory_addr){
              float readValue;
              readValue = EEPROM.read(i);
-             Serial.println(readValue);
+             Serial.println(readValue, 6);
              client.write(readValue);  //send value to client
              i = i + 1;
           }
           break;
           }
     client.stop(); // close the connection
-  }
+
+}
 }
