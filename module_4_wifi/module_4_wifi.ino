@@ -1,11 +1,9 @@
-#include "types.h"
 #include "TinyGPS++.h"
 #include <SoftwareSerial.h>
-#include <Wire.h>
+
 #include "EEPROM.h"
 #include <WiFi.h>
 #include <WiFiClient.h>
-#include <WiFiAP.h>
 
 // Set these to your desired credentials.
 const char *ssid = "ESP32";
@@ -26,7 +24,7 @@ TinyGPSPlus gps; //creation of an GPS object
 
 SoftwareSerial ss(RXPin, TXPin); //creation of a SoftwareSerial for GPS connection..............
 
-float memory_addr; //current memory pointer
+int memory_addr; //current memory pointer
 float longitude; //current gps longitude
 float latitude; //current gps latitude
 

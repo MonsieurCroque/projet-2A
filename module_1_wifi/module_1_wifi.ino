@@ -1,11 +1,9 @@
-#include "types.h"
 #include "TinyGPS++.h"
 #include <SoftwareSerial.h>
-#include <Wire.h>
+
 #include "EEPROM.h"
 #include <WiFi.h>
 #include <WiFiClient.h>
-#include <WiFiAP.h>
 
 // Set these to your desired credentials.
 const char *ssid = "ESP32";
@@ -26,7 +24,7 @@ TinyGPSPlus gps; //creation of an GPS object
 
 SoftwareSerial ss(RXPin, TXPin); //creation of a SoftwareSerial for GPS connection..............
 
-float memory_addr; //current memory pointer
+int memory_addr; //current memory pointer
 float writeValue; //current gps coordinate
 
 void setup() {
@@ -38,17 +36,19 @@ void setup() {
   
   //set flash memory
   memory_addr = 0;
-  EEPROM.begin(EEPROM_SIZE);
-  
+  if (!EEPROM.begin(EEPROM_SIZE)){
+    Serial.println("failed to initialise EEPROM");
+  }
+    
   //set button
   pinMode(buttonPin, INPUT);
 
   //set wifi server
-  //WiFi.softAP(ssid, password);
-  //IPAddress myIP = WiFi.softAPIP();
-  //Serial.print("AP IP address: ");
-  //Serial.println(myIP);
-  //server.begin();
+  WiFi.softAP(ssid, password);
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+  server.begin();
 }
 
 
@@ -56,45 +56,49 @@ void loop() {
 
   while(ss.available() > 0){
     gps.encode(ss.read());
-
+    Serial.println(gps.location.lat(), 6);
+    Serial.println(gps.location.lng(), 6);
+    
+    
     if (gps.location.isUpdated()){
 
       Serial.println(gps.location.lat(), 6);
       Serial.println(gps.location.lng(), 6);
+      
       //new point in memory
-      writeValue = gps.location.lat();     
-      EEPROM.write(memory_addr, writeValue);
+      EEPROM.write(memory_addr, gps.location.lat());
+      Serial.println(gps.location.lat(), 6);
       memory_addr = memory_addr + 1;
-      writeValue = gps.location.lng();
-      EEPROM.write(memory_addr, writeValue);
+      EEPROM.write(memory_addr, gps.location.lng());
+      Serial.println(gps.location.lng(), 6);
       memory_addr = memory_addr + 1;
       EEPROM.commit();
       
     }
   }
   
-  buttonState = digitalRead(buttonPin);
-  if (buttonState == HIGH) {
-
-      WiFiClient client = server.available();   // listen for incoming clients
-      
-      while (client) {                             // if you get a client,
-          
-          while (! client.connected()) {
-            Serial.println("wait");// wait for client
-          }
-          
-          int i = 0;
-          while (i < memory_addr){
-             float readValue;
-             readValue = EEPROM.read(i);
-             Serial.println(readValue, 6);
-             client.write(readValue);  //send value to client
-             i = i + 1;
-          }
-          break;
-          }
-    client.stop(); // close the connection
-
-}
+//  buttonState = digitalRead(buttonPin);
+//  if (buttonState == HIGH) {
+//    
+//      WiFiClient client = server.available();   // listen for incoming clients
+//      Serial.println("here");
+//      while (client) {                             // if you get a client,
+//          
+//          while (! client.connected()) {
+//            Serial.println("wait");// wait for client
+//          }
+//          
+//          int i = 0;
+//          while (i < memory_addr){
+//             float readValue;
+//             readValue = EEPROM.readFloat(i);
+//             Serial.println(readValue, 6);
+//             client.write(readValue);  //send value to client
+//             i = i + 1;
+//          }
+//          break;
+//          }
+//    client.stop(); // close the connection
+//
+//}
 }

@@ -1,11 +1,21 @@
+#--------------------------------libraries-------------------------------------
+
 import numpy
+
+# for interpolation
 import scipy.optimize as scimin
+
+# for plotting
 import matplotlib.pyplot as plt
+
+# for background map
 from mpl_toolkits.basemap import Basemap
-from random import random
-from math import sqrt, log, sin, pi, floor, ceil
+
 import bluetooth
-# Get data from ESP32
+
+#----------------------------data from ESP32-----------------------------------
+
+#Get data from ESP32
 
 i= 0
 
@@ -36,70 +46,81 @@ while True:
 dataLong = numpy.array([dataAcc[2*i] for i in range(floor(len(dataAcc) / 2))])
 dataLat = numpy.array([dataAcc[2*i + 1] for i in range(ceil(len(dataAcc) / 2)-1)])
 
-# Generate data for testing (Paris)
+#-----------------------------data for testing---------------------------------
 
-def generate(n):
-    dataLong = numpy.array([2.346033*(1 + sqrt(i+1)/1000) for i in range(n)])
-    dataLat = numpy.array([48.850447*(1 + sqrt(i)*(random() -0.5)/100000) for i in range(int(n/2))] + [48.850447*(1 + (sqrt(int(n/2))+log(i+1)**2)*(random() -0.5)/100000) for i in range(n-int(n/2))])
-    return dataLong, dataLat
+#Gathered in Rennes during a 2 min bus ride thanks to Runtastic
 
-# least square fit without constraints
-# Possible to change model
-def fitfunc(x,p): # model $f(x)=a x^2+b x+c
+dataLong = numpy.array([-1.647416  , -1.64801121, -1.64863586, -1.6492945 , -1.64979613,
+       -1.65033984, -1.65089107, -1.65147328, -1.65207493, -1.65266132,
+       -1.65324414, -1.65381372, -1.65437889, -1.65497065, -1.65551889,
+       -1.65614533, -1.65629029, -1.65629029])
+dataLat = numpy.array([48.1114006 , 48.11125565, 48.1111145 , 48.11100602, 48.1108284 ,
+       48.11069489, 48.11056519, 48.11043167, 48.11032104, 48.11023712,
+       48.11015701, 48.11010742, 48.11008835, 48.11009598, 48.11009216,
+       48.11008072, 48.1100769 , 48.1100769 ])
+
+#---------------------nterpolation (LS without constraints)--------------------
+
+# model for fit
+
+def fitfunc(x,p): #f(x)= a x^2 + b x+ c
     a,b,c=p
     return c + b*x + a*x**2
 
-def residuals(p): # array of residuals
+# array of residuals
+
+def residuals(p): 
     return abs(dataLatTest-fitfunc(dataLongTest,p))
 
+ # function we want to minimize
+
+def sum_residuals_custom(p):
+    return sum(residuals(p)**2)
+
+# interpolation
+
 def interpolation(n, epsilon):
-    global dataLongTest
+    
+    global dataLongTest # dataset for interpolation
     global dataLatTest
-    p0=[1,0,0] # initial parameters guess
     dataLongTest = dataLong[0:3]
     dataLatTest = dataLat[0:3]
-    p,cov,infodict,mesg,ier=scimin.leastsq(residuals, p0,full_output=True)
-    curve_interpolation = [p]
+    
+    p0=[1,0,0] # initial parameters guess
+    p,cov,infodict,mesg,ier = scimin.leastsq(residuals, p0,full_output=True) #interpolation
+    
+    curve_interpolation = [p] # add model to result
     curve_points = [dataLong[0]]
-    acc=3
-    prec = 0
-    i=4
+    i = 0
+    
     while i < n :
+        
         if abs(fitfunc(dataLong[i],p) - dataLat[i]) > epsilon:
+            
             dataLongTest = dataLong[(i-2):(i+2)]
             dataLatTest = dataLat[(i-2):(i+2)]
             dataLatTest[0] = fitfunc(dataLong[i-2],p)
+            
             p,cov,infodict,mesg,ier=scimin.leastsq(residuals, p0,full_output=True)
             pwith=scimin.fmin_slsqp(sum_residuals_custom,p)
+            
             curve_interpolation.append(pwith)
             curve_points.append(dataLong[i-2])
-            acc=3
-            prec = i - 2
-            i+=1
-        else:
-            if acc%5 == 0:
-                dataLatTest = dataLat[prec:i]
-                dataLongTest = dataLong[prec:i]
-                dataLatTest[0] = fitfunc(dataLong[i-2],p)
-                p,cov,infodict,mesg,ier=scimin.leastsq(residuals, p0,full_output=True)
-                curve_interpolation[-1]=p
-        acc+=1
+            i += 1
+            
         i+=1
-    curve_points.append(dataLong[n-1])
+    
+    curve_points.append(dataLong[n-1]) # add last point 
+    
     return curve_interpolation, curve_points
 
 
-def sum_residuals_custom(p): # the function we want to minimize
-    return sum(residuals(p)**2)
+#----------------------------------plotting------------------------------------
 
-dataLong, dataLat = generate(50) # comment this if you use vect
-curve_interpolation, curve_points = interpolation(len(dataLong),0.0005)
-
-# plotting
 # adding background map
 
-latMin = min(dataLat) - 0.0001
-latMax = max(dataLat) + 0.0001
+latMin = min(dataLat) - 0.0005 # background map size
+latMax = max(dataLat) + 0.0005
 longMin = min(dataLong) - (latMax - latMin)/2
 longMax = max(dataLong) + (latMax - latMin)/2
 
@@ -110,12 +131,12 @@ m.arcgisimage(service='ESRI_StreetMap_World_2D', xpixels = 12000, verbose= True)
 
 m.plot(dataLong,dataLat,ls="",marker="x",color="blue",mew=2.0,label="Datas")
 
-# plotting different regression
+# adding path
+
+curve_interpolation, curve_points = interpolation(len(dataLong),0.0002)
 
 for e in range(len(curve_points)-1):
     morex=numpy.linspace(min(curve_points[e:e+2]),max(curve_points[e:e+2]), num = 500, endpoint = True)
     m.plot(morex,fitfunc(morex,curve_interpolation[e]),color="red")
-
-# show
 
 plt.show()

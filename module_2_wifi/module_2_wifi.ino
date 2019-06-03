@@ -1,11 +1,9 @@
-#include "types.h"
 #include "TinyGPS++.h"
 #include <SoftwareSerial.h>
-#include <Wire.h>
+
 #include "EEPROM.h"
 #include <WiFi.h>
 #include <WiFiClient.h>
-#include <WiFiAP.h>
 
 // Set these to your desired credentials.
 const char *ssid = "ESP32";
@@ -26,17 +24,17 @@ TinyGPSPlus gps; //creation of an GPS object
 
 SoftwareSerial ss(RXPin, TXPin); //creation of a SoftwareSerial for GPS connection..............
 
-float memory_addr; //current memory pointer
+int memory_addr; //current memory pointer
 float longitude; //current gps longitude
 float latitude; //current gps latitude
 
-float P0[2]; // point for slope
-float P1[2]; // point for slope
-float P2[2]; // new point
-float Pm[2]; // point before changing
+float P0[3]; // point for slope
+float P1[3]; // point for slope
+float P2[3]; // new point
+float Pm[3]; // point before changing
 float coord0[2] = {-1000,-1000};
-float coord1[2] = {-1000,-1000};;
-float coord2[2] = {-1000,-1000};;
+float coord1[2] = {-1000,-1000};
+float coord2[2] = {-1000,-1000};
 float coordM[2];
 
 const float pi = 3.14;
@@ -45,6 +43,7 @@ const float pi = 3.14;
 void copy(float target[], float content[]){
   target[0] = content[0];
   target[1] = content[1];
+  target[2] = content[2];
 }
 
 //Convert longitude and latitude to cartesian
@@ -52,13 +51,15 @@ void convertcart (float longi, float lati, float P[]){
     float R = 66378137; 
     float x = R*cos(lati*pi/180)*cos(longi*pi/180);
     float y = R*cos(lati*pi/180)*sin(longi*pi/180);
+    float z = R*sin(lati*pi/180);
     P[0] = x;
     P[1] = y;
+    P[2] = z;
 }
 
 //Distance between point and slope in cartesian
 float distancedir(float P0[],float P1[], float P2[]){
-    return ((P1[1]-P0[1])*P2[0]-(P1[0]-P0[0])*P2[1] + P1[0]*P0[1] - P1[1]*P0[0])/sqrt(pow(P1[1]-P0[1], 2) + pow(P1[0]-P0[0],2));
+    return ((P1[1]-P0[1])*(P1[2]-P0[2])*P2[0] - 2*(P1[2]-P0[2])*(P1[0]-P0[0])*P2[1] + (P1[1]-P0[1])*(P1[0]-P0[0])*P2[2] + (P1[2]-P0[2])*(P1[0]*P0[1]-P1[1]*P0[0]) + (P1[0]-P0[0])*(P1[1]*P0[2]-P1[2]*P0[1]))/sqrt(pow(P1[2]-P0[2], 2) + pow(P1[1]-P0[1], 2) + pow(P1[0]-P0[0],2));
 }
 
 
