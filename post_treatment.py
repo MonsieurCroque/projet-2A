@@ -17,47 +17,45 @@ import bluetooth
 
 #Get data from ESP32
 
-i= 0
+hostMACAddress = '30:ae:a4:8f:f0:de' # The MAC address of a Bluetooth adapter on the server. The server might have multiple Bluetooth adapters.    
+port = 7
 
-while True:
-    hostMACAddress = '30:ae:a4:8f:f0:de' # The MAC address of a Bluetooth adapter on the server. The server might have multiple Bluetooth adapters.
-    
-    serverMACAddress = '30:ae:a4:8f:f0:de'
-    port = 7
-    s = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-    s.connect((hostMACAddress, port))
-    i = 0
-    while i < 1000:
+s = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+s.connect((hostMACAddress, port))
+
+i = 0
+newData ="t"
+dataAcc = []
+
+while i < 5:
+    while newData != "":
         newData = raw_input()
-        i += 0.00001
-        if newData != None:
-            break
-        dataAcc += newData
-        print(newData)
+        dataAcc.append(newData)
     
-    print("received [%s]" % dataAcc)
+    print("received [%s]" % newData)
     
-    client_socket.close()
-    server_socket.close()
-    break
+    i+=1
+    
+client_socket.close()
+server_socket.close()
 
 # Transform data into array
 
-dataLong = numpy.array([dataAcc[2*i] for i in range(floor(len(dataAcc) / 2))])
-dataLat = numpy.array([dataAcc[2*i + 1] for i in range(ceil(len(dataAcc) / 2)-1)])
+dataLong = numpy.array([dataAcc[2*i] for i in range(int(len(dataAcc)/2))])
+dataLat = numpy.array([dataAcc[2*i + 1] for i in range(int((len(dataAcc) - 1)/2))])
 
 #-----------------------------data for testing---------------------------------
 
 #Gathered in Rennes during a 2 min bus ride thanks to Runtastic
 
-dataLong = numpy.array([-1.647416  , -1.64801121, -1.64863586, -1.6492945 , -1.64979613,
-       -1.65033984, -1.65089107, -1.65147328, -1.65207493, -1.65266132,
-       -1.65324414, -1.65381372, -1.65437889, -1.65497065, -1.65551889,
-       -1.65614533, -1.65629029, -1.65629029])
-dataLat = numpy.array([48.1114006 , 48.11125565, 48.1111145 , 48.11100602, 48.1108284 ,
-       48.11069489, 48.11056519, 48.11043167, 48.11032104, 48.11023712,
-       48.11015701, 48.11010742, 48.11008835, 48.11009598, 48.11009216,
-       48.11008072, 48.1100769 , 48.1100769 ])
+#dataLong = numpy.array([-1.647416  , -1.64801121, -1.64863586, -1.6492945 , -1.64979613,
+#       -1.65033984, -1.65089107, -1.65147328, -1.65207493, -1.65266132,
+#       -1.65324414, -1.65381372, -1.65437889, -1.65497065, -1.65551889,
+#       -1.65614533, -1.65629029, -1.65629029])
+#dataLat = numpy.array([48.1114006 , 48.11125565, 48.1111145 , 48.11100602, 48.1108284 ,
+#       48.11069489, 48.11056519, 48.11043167, 48.11032104, 48.11023712,
+#       48.11015701, 48.11010742, 48.11008835, 48.11009598, 48.11009216,
+#       48.11008072, 48.1100769 , 48.1100769 ])
 
 #---------------------nterpolation (LS without constraints)--------------------
 
@@ -79,38 +77,38 @@ def sum_residuals_custom(p):
 
 # interpolation
 
-def interpolation(n, epsilon):
+def interpolation(n, epsilon, x, y):
     
     global dataLongTest # dataset for interpolation
     global dataLatTest
-    dataLongTest = dataLong[0:3]
-    dataLatTest = dataLat[0:3]
+    dataLongTest = x[0:3]
+    dataLatTest = y[0:3]
     
     p0=[1,0,0] # initial parameters guess
     p,cov,infodict,mesg,ier = scimin.leastsq(residuals, p0,full_output=True) #interpolation
     
     curve_interpolation = [p] # add model to result
-    curve_points = [dataLong[0]]
+    curve_points = [x[0]]
     i = 0
     
     while i < n :
         
-        if abs(fitfunc(dataLong[i],p) - dataLat[i]) > epsilon:
+        if abs(fitfunc(x[i],p) - y[i]) > epsilon:
             
-            dataLongTest = dataLong[(i-2):(i+2)]
-            dataLatTest = dataLat[(i-2):(i+2)]
-            dataLatTest[0] = fitfunc(dataLong[i-2],p)
+            dataLongTest = x[(i-2):(i+2)]
+            dataLatTest = y[(i-2):(i+2)]
+            dataLatTest[0] = fitfunc(x[i-2],p)
             
             p,cov,infodict,mesg,ier=scimin.leastsq(residuals, p0,full_output=True)
             pwith=scimin.fmin_slsqp(sum_residuals_custom,p)
             
             curve_interpolation.append(pwith)
-            curve_points.append(dataLong[i-2])
+            curve_points.append(x[i-2])
             i += 1
             
         i+=1
     
-    curve_points.append(dataLong[n-1]) # add last point 
+    curve_points.append(x[n-1]) # add last point 
     
     return curve_interpolation, curve_points
 
@@ -129,14 +127,15 @@ m.arcgisimage(service='ESRI_StreetMap_World_2D', xpixels = 12000, verbose= True)
 
 # adding GPS coordinates
 
-m.plot(dataLong,dataLat,ls="",marker="x",color="blue",mew=2.0,label="Datas")
+m.plot(dataLong,dataLat,ls="",marker="x",color="red",mew=2.0,label="Datas")
 
-# adding path
+#adding path
 
-curve_interpolation, curve_points = interpolation(len(dataLong),0.0002)
+curve_interpolation, curve_points = interpolation(len(dataLong),0.0001, dataLong, dataLat)
 
-for e in range(len(curve_points)-1):
-    morex=numpy.linspace(min(curve_points[e:e+2]),max(curve_points[e:e+2]), num = 500, endpoint = True)
-    m.plot(morex,fitfunc(morex,curve_interpolation[e]),color="red")
+for e in range(len(dataLong)-1):
+    morex=numpy.linspace(dataLong[e],dataLong[e+1], num = 500, endpoint = True)
+    morey = numpy.linspace(dataLat[e],dataLat[e+1], num = 500, endpoint = True)
+    m.plot(morex,morey,color="blue")
 
 plt.show()
